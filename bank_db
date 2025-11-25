@@ -1,0 +1,83 @@
+drop database bank_086;
+create database if not exists bank_086;
+use bank_086;
+
+create table Branch(
+branch_name varchar(225) primary key,
+branch_city varchar(225),
+assets real);
+
+create table BankAccount(
+accno int primary key,
+branch_name varchar(225) references Branch(branch_name),
+balance real);
+
+create table BankCustomer(
+customer_name varchar(225) primary key,
+customer_street varchar(225),
+customer_city varchar(225));
+
+create table Depositer(
+customer_name varchar(225) references BankCustomer(customer_name),
+accno int references BankAccount(accno));
+
+create table LOAN(
+loan_number int primary key,
+branch_name varchar(225) references Branch(branch_name),
+amount real);
+
+INSERT INTO Branch VALUES
+('SBI_ResidencyRoad', 'Bangalore', 50000000),
+('SBI_MGRoad', 'Bangalore', 35000000),
+('SBI_DelhiMain', 'Delhi', 60000000),
+('SBI_BombayCentral', 'Mumbai', 45000000),
+('SBI_ChennaiTown', 'Chennai', 30000000);
+
+INSERT INTO BankAccount VALUES
+(1001, 'SBI_ResidencyRoad', 55000),
+(1002, 'SBI_ResidencyRoad', 75000),
+(1003, 'SBI_MGRoad', 120000),
+(1004, 'SBI_DelhiMain', 80000),
+(1005, 'SBI_BombayCentral', 95000);
+
+INSERT INTO BankCustomer VALUES
+('Ramesh Kumar', 'MG Road', 'Bangalore'),
+('Sita Sharma', 'Residency Road', 'Bangalore'),
+('Amit Verma', 'Connaught Place', 'Delhi'),
+('Priya Nair', 'Marine Drive', 'Mumbai'),
+('Kiran Rao', 'Anna Salai', 'Chennai');
+
+INSERT INTO Depositer VALUES
+('Ramesh Kumar', 1001),
+('Sita Sharma', 1002),
+('Amit Verma', 1004),
+('Priya Nair', 1005),
+('Ramesh Kumar', 1003);
+
+INSERT INTO Loan VALUES
+(5001, 'SBI_ResidencyRoad', 250000),
+(5002, 'SBI_MGRoad', 400000),
+(5003, 'SBI_DelhiMain', 300000),
+(5004, 'SBI_BombayCentral', 200000),
+(5005, 'SBI_ChennaiTown', 150000);
+
+select branch_name,assets/100000 as "Assets in Lakhs" from Branch;
+
+SELECT D.customer_name, B.branch_name, COUNT(*) AS num_accounts
+FROM Depositer D, BankAccount B
+where D.accno = B.accno
+GROUP BY D.customer_name, B.branch_name
+HAVING COUNT(*) >= 2;
+
+drop view if exists BranchLoanSummary;
+create view BranchLoanSummary as
+select branch_name, SUM(amount) as "Sum of Loans"
+from Loan
+group by branch_name;
+select * from BranchLoanSummary;
+
+
+
+
+
+
