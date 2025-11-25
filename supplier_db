@@ -104,12 +104,84 @@ JOIN Supplier s ON s.sid = c.sid
 WHERE c.cost = (
     SELECT MAX(c2.cost)
     FROM Catalog c2
-    WHERE c2.pid = p.pid
+    WHERE c2.pid = p.pid);
 
 
+/* EXTRA QUERIES */
+SELECT p.pname, s.sname, c.cost
+FROM Catalog c
+JOIN Parts p ON p.pid = c.pid
+JOIN Supplier s ON s.sid = c.sid
+WHERE c.cost = (SELECT MAX(cost) FROM Catalog);
 
-
-
-
-
+SELECT s.sname
+FROM Supplier s
+WHERE NOT EXISTS (
+    SELECT *
+    FROM Parts p
+    JOIN Catalog c ON p.pid = c.pid
+    WHERE p.color = 'red' AND c.sid = s.sid
 );
+
+SELECT s.sname, SUM(c.cost) AS total_value
+FROM Supplier s
+JOIN Catalog c ON s.sid = c.sid
+GROUP BY s.sid, s.sname;
+
+SELECT s.sname
+FROM Supplier s
+JOIN Catalog c ON s.sid = c.sid
+WHERE c.cost < 20
+GROUP BY s.sid, s.sname
+HAVING COUNT(c.pid) >= 2;
+
+SELECT p.pname, s.sname, c.cost
+FROM Catalog c
+JOIN Parts p ON p.pid = c.pid
+JOIN Supplier s ON s.sid = c.sid
+WHERE c.cost = (
+    SELECT MIN(c2.cost)
+    FROM Catalog c2
+    WHERE c2.pid = c.pid
+);
+
+CREATE OR REPLACE VIEW SupplierPartCount AS
+SELECT s.sid, s.sname, COUNT(c.pid) AS total_parts
+FROM Supplier s
+LEFT JOIN Catalog c ON s.sid = c.sid
+GROUP BY s.sid, s.sname;
+
+CREATE OR REPLACE VIEW MostExpensiveSupplierPerPart AS
+SELECT p.pid, p.pname, s.sname, c.cost
+FROM Parts p
+JOIN Catalog c ON p.pid = c.pid
+JOIN Supplier s ON s.sid = c.sid
+WHERE c.cost = (
+    SELECT MAX(c2.cost)
+    FROM Catalog c2
+    WHERE c2.pid = p.pid
+);
+
+DELIMITER $$
+CREATE TRIGGER prevent_low_cost
+BEFORE INSERT ON Catalog
+FOR EACH ROW
+BEGIN
+    IF NEW.cost < 1 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Cost cannot be less than 1';
+    END IF;
+END $$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER set_default_cost
+BEFORE INSERT ON Catalog
+FOR EACH ROW
+BEGIN
+    IF NEW.cost IS NULL THEN
+        SET NEW.cost = 50;
+    END IF;
+END $$
+DELIMITER ;
+
